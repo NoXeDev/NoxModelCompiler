@@ -3,19 +3,10 @@ const fs = require('fs');
 
 module.exports = class {
     static async loadObjModel(file, splitterSubModel, ArrayConfiguration) {
-        let vertices
-        let textures
-        let normals
         let indices = new Array()
-        if(!ArrayConfiguration){
-            vertices = new Array()
-            textures = new Array()
-            normals = new Array()
-        }else {
-            vertices = ArrayConfiguration[0]
-            textures = ArrayConfiguration[1]
-            normals = ArrayConfiguration[2]
-        }
+        let vertices = new Array()
+        let textures = new Array()
+        let normals = new Array()
 
         let verticesArray
         let normalsArray 
@@ -65,11 +56,20 @@ module.exports = class {
                     let vertex1 = currentLine[1].split("/")
                     let vertex2 = currentLine[2].split("/")
                     let vertex3 = currentLine[3].split("/")
-
+                    if(ArrayConfiguration){
+                        vertex1[0] -= ArrayConfiguration[0]
+                        vertex1[1] -= ArrayConfiguration[1]
+                        vertex1[2] -= ArrayConfiguration[2]
+                        vertex2[0] -= ArrayConfiguration[0]
+                        vertex2[1] -= ArrayConfiguration[1]
+                        vertex2[2] -= ArrayConfiguration[2]
+                        vertex3[0] -= ArrayConfiguration[0]
+                        vertex3[1] -= ArrayConfiguration[1]
+                        vertex3[2] -= ArrayConfiguration[2]
+                    }
                     this.processVertex(vertex1, indices, textures, normals, textureArray, normalsArray)
                     this.processVertex(vertex2, indices, textures, normals, textureArray, normalsArray)
                     this.processVertex(vertex3, indices, textures, normals, textureArray, normalsArray)
-
                 }
             }
         verticesArray = new Array(vertices.length * 3)
@@ -88,14 +88,21 @@ module.exports = class {
 
         let obj = {verticesArray, textureArray, indicesArray, normalsArray}
         if(subModelsExport){
-            return [obj, spliterLineIndex, [vertices, textures, normals]]
+            let currentArrayLength
+            if(ArrayConfiguration){
+                currentArrayLength = [vertices.length += ArrayConfiguration[0], textures.length += ArrayConfiguration[1], normals.length += ArrayConfiguration[2]]
+            }else {
+                currentArrayLength = [vertices.length, textures.length, normals.length]
+            }
+
+            return [obj, spliterLineIndex, currentArrayLength]
         }
         return [obj]
     }
 
     static processVertex(vertexData, indices, textures, normals, textureArray, normalsArray){
         let currentVertexPointer = parseInt(vertexData[0]) - 1
-        indices.push(currentVertexPointer)
+        indices.push(currentVertexPointer) 
         let currentTex = textures[parseInt(vertexData[1]) - 1]
         textureArray[currentVertexPointer*2] = currentTex.x
         textureArray[currentVertexPointer*2+1] = 1 - currentTex.y
