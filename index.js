@@ -1,35 +1,56 @@
 const OBJloader = require("./ObjLoader")
 const fs = require("fs");
-const SubModel = require("./SubModel");
-const NoxModel = require("./NoxModel");
 
+//load obj and process vertices, UV and indices
 
 (async () => {
-    if(!process.argv[2]){throw new Error("No arg provided")}
-    var OBJ = await OBJloader.loadObjModel(process.argv[2])
-    console.log("SubModel Detected, split point at : " + OBJ[1])
-    let ObjectsModel = new Array(OBJ[0])
-    while(OBJ[1]){
-        OBJ = await OBJloader.loadObjModel(process.argv[2], OBJ[1], OBJ[2])
-        console.log("while")
-        if(OBJ[1]){
-            console.log("An other SubModel Detected, split point at : " + OBJ[1])
-        }
-        ObjectsModel.push(OBJ[0])
-    }
+    var {verticesArray, textureArray, indicesArray, normalsArray} = OBJloader.loadObjModel("in.obj")
+    console.log(verticesArray) //debug 
+    console.log(normalsArray)
 
-    let SubModels = new Array()
-    for(var i = 0; i < ObjectsModel.length ; i++)
-    {
-        SubModels.push(new SubModel(ObjectsModel[i]))
-    }
-    for(var i = 0; i < SubModels.length; i++){
-        await SubModels[i].prepareBuffer()
-    }
-    console.log(SubModels)
-    let finalModel = new NoxModel(SubModels)
-    await finalModel.prepareBuffer()
-    console.log(finalModel.modelBuffer)
+    var offsetSize = 4 //size of float and ints
+    //setup headers
+    var headers = [verticesArray.length, textureArray.length, indicesArray.length, normalsArray.length]
+    headers.forEach(e => {
+        console.log(e)
+    })
+    var BufferAllocate = ((verticesArray.length + textureArray.length + indicesArray.length + normalsArray.length) * offsetSize) + (headers.length*offsetSize)
+    console.log(BufferAllocate)
 
-    fs.writeFile(process.argv[2].replace(".obj", ".nm"), finalModel.modelBuffer, "binary", function(){})
+    //Buffer allocation
+    var buf = Buffer.allocUnsafe(BufferAllocate);
+
+    //writting datas into buffer and register offsets after for others array
+    var offsets
+    offsets = await writeArrayIntoIntBuffer(buf, headers, offsetSize)
+    console.log(offsets)
+    offsets = await writeArrayIntoFloatBuffer(buf, verticesArray, offsetSize, offsets) //writing vertices into buffer
+    console.log(offsets)
+    offsets = await writeArrayIntoFloatBuffer(buf, textureArray, offsetSize, offsets) //writing textures into buffer
+    console.log(offsets)
+    offsets = await writeArrayIntoIntBuffer(buf, indicesArray, offsetSize, offsets) //writing indices into buffer
+    console.log(offsets)
+    offsets = await writeArrayIntoFloatBuffer(buf, normalsArray, offsetSize, offsets)
+
+    // Printing the buffer
+    console.log(buf);
+
+    fs.writeFile("out.nm", buf, "binary", function(){})
 })()
+
+
+async function writeArrayIntoFloatBuffer(buffer, array, offsetSize, offsets){
+    var newOffsets
+    for(i = 0 ; i < array.length ; i++){
+        newOffsets = buffer.writeFloatLE(array[i], i * offsetSize + (offsets ? offsets : 0))
+    }
+    return newOffsets
+}
+
+async function writeArrayIntoIntBuffer(buffer, array, offsetsSize, offsets){
+    var newOffsets
+    for(i = 0 ; i < array.length ; i++){
+        newOffsets = buffer.writeInt32LE(array[i], i * offsetsSize + (offsets ? offsets : 0))
+    }
+    return newOffsets
+}
