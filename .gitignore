@@ -1,4 +1,3 @@
 *.obj
 *.nm
 node_modules
-.vscode
