@@ -2,11 +2,20 @@ const {Vector2f, Vector3f} = require("./Vectors")
 const fs = require('fs');
 
 module.exports = class {
-    static loadObjModel(file) {
-        let vertices = new Array()
-        let textures = new Array()
-        let normals = new Array()
+    static async loadObjModel(file, splitterSubModel, ArrayConfiguration) {
+        let vertices
+        let textures
+        let normals
         let indices = new Array()
+        if(!ArrayConfiguration){
+            vertices = new Array()
+            textures = new Array()
+            normals = new Array()
+        }else {
+            vertices = ArrayConfiguration[0]
+            textures = ArrayConfiguration[1]
+            normals = ArrayConfiguration[2]
+        }
 
         let verticesArray
         let normalsArray 
@@ -14,11 +23,26 @@ module.exports = class {
         let indicesArray
 
         let arrayInitialization = false
+        let lastOBJStruct = false
+        let subModelsExport = false
+        let spliterLineIndex
+        let indexSplitter
+        if(!splitterSubModel){
+            indexSplitter = 0
+        }else {
+            indexSplitter = splitterSubModel
+        }
             var datas = fs.readFileSync(file, "utf8")
-            var line = datas.split("\n")
-            line.forEach(line => {
+            var lines = datas.split("\n")
+            for(var i = indexSplitter ; i < lines.length ; i++){
+                let line = lines[i]
                 var currentLine = line.split(" ")
                 if(line.startsWith("v ")){
+                    if(lastOBJStruct){
+                        subModelsExport = true;
+                        spliterLineIndex = i;
+                        break;
+                    }
                     let vertex = new Vector3f(parseFloat(currentLine[1]), parseFloat(currentLine[2]), parseFloat(currentLine[3]))
                     vertices.push(vertex)
                 }else if(line.startsWith("vt ")){
@@ -28,6 +52,10 @@ module.exports = class {
                     let normal = new Vector3f(parseFloat(currentLine[1]), parseFloat(currentLine[2]), parseFloat(currentLine[3]))
                     normals.push(normal)
                 }else if(line.startsWith("f ")){
+                    //checking for subModel
+                    if(!lastOBJStruct){
+                        lastOBJStruct = true
+                    }
                     if(!arrayInitialization){
                         textureArray = new Array(vertices.length * 2)  
                         normalsArray = new Array(vertices.length * 3)
@@ -43,9 +71,7 @@ module.exports = class {
                     this.processVertex(vertex3, indices, textures, normals, textureArray, normalsArray)
 
                 }
-                
-            })
-
+            }
         verticesArray = new Array(vertices.length * 3)
         indicesArray = new Array(indices.length)
 
@@ -60,7 +86,11 @@ module.exports = class {
             indicesArray[i] = indices[i]
         }
 
-        return {verticesArray, textureArray, indicesArray, normalsArray}
+        let obj = {verticesArray, textureArray, indicesArray, normalsArray}
+        if(subModelsExport){
+            return [obj, spliterLineIndex, [vertices, textures, normals]]
+        }
+        return [obj]
     }
 
     static processVertex(vertexData, indices, textures, normals, textureArray, normalsArray){
