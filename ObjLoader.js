@@ -37,20 +37,11 @@ module.exports = class {
                     let vertex1 = currentLine[1].split("/")
                     let vertex2 = currentLine[2].split("/")
                     let vertex3 = currentLine[3].split("/")
-                    if(ArrayConfiguration){
-                        vertex1[0] -= ArrayConfiguration[0]
-                        vertex1[1] -= ArrayConfiguration[1]
-                        vertex1[2] -= ArrayConfiguration[2]
-                        vertex2[0] -= ArrayConfiguration[0]
-                        vertex2[1] -= ArrayConfiguration[1]
-                        vertex2[2] -= ArrayConfiguration[2]
-                        vertex3[0] -= ArrayConfiguration[0]
-                        vertex3[1] -= ArrayConfiguration[1]
-                        vertex3[2] -= ArrayConfiguration[2]
-                    }
+
                     this.processVertex(vertex1, indices, textures, normals, textureArray, normalsArray)
                     this.processVertex(vertex2, indices, textures, normals, textureArray, normalsArray)
                     this.processVertex(vertex3, indices, textures, normals, textureArray, normalsArray)
+
                 }
                 
             })
@@ -74,7 +65,7 @@ module.exports = class {
 
     static processVertex(vertexData, indices, textures, normals, textureArray, normalsArray){
         let currentVertexPointer = parseInt(vertexData[0]) - 1
-        indices.push(currentVertexPointer) 
+        indices.push(currentVertexPointer)
         let currentTex = textures[parseInt(vertexData[1]) - 1]
         textureArray[currentVertexPointer*2] = currentTex.x
         textureArray[currentVertexPointer*2+1] = 1 - currentTex.y
